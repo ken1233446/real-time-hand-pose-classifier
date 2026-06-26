@@ -1,4 +1,11 @@
+from pathlib import Path
+import json
+
+from cv2.typing import MatLike
+import cv2 as cv
+
 class Camera:
+
     """
     Captures frames from webcam
     
@@ -11,6 +18,76 @@ class Camera:
         Numpy (BGR) → Numpy RGB
 
     Return: 
-        Bool & Numpy Matrix of frames (RGB)
+        Numpy Matrix of frames (RGB)
     """
-    pass
+
+    #self.config{" "} | self.cap.
+    def __init__(self) -> None:
+        self.cap: cv.VideoCapture | None = None #Act as a bridge from webcam to code.
+        self.config =  {} #Variable for config file.
+
+        config_path = Path(__file__).parent / "config.json"
+
+        #Check if the config.json is valid.
+        try:
+            with open(config_path, 'r') as f:
+                self.config = json.load(f)
+
+        except FileNotFoundError: #Check if config.json is found.
+            print('Error: config.json was not found. Falling back to default camera index = 0.')
+            self.config = {"camera_index": 0}
+
+        except json.JSONDecodeError:#Check if config.json is corrupted.
+            print("Error: 'config.json is corrupted. Failling back to default camera index = 0.")
+            self.config = {"camera_index": 0} 
+    
+    #Return self.cap.
+    def open_camera(self) -> cv.VideoCapture | None:
+
+        """Opens the camera connection with error handling."""
+
+        #Variable for camera index
+        camera_indx = self.config["camera_index"]
+
+        #Bridge the camera and code.
+        self.cap = cv.VideoCapture(camera_indx)
+
+        #Check if camera is opened 
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Could not open the camera stream at index {camera_indx}.")
+        print("Camera successfully initialized.")
+        return self.cap
+
+    #Grab the frames from video | Return: NDarray (frame).
+    def get_frames(self) -> MatLike:
+
+        """Grab the frames from the video with error handling"""
+        
+        if self.cap is None or not self.cap.isOpened():
+            raise RuntimeError('Error: Camera has not been initialized.')
+        
+        #Store the state of camera and frame.
+        ret, frame = self.cap.read()
+
+        #Check if it receive any frame.
+        if not ret:
+            raise RuntimeError("No frame detected. Exiting loop or handling stream end...")
+        
+        return frame
+
+    #Convert frame from BGR -> RGB | Return: rgb_frames.
+    def bgr_to_rgb(self, frames: MatLike) -> MatLike:
+        """
+        Convert frames from BGR -> RGB
+        """
+        rgb_frames = cv.cvtColor(frames, cv.COLOR_BGR2RGB)
+
+        return rgb_frames
+    
+    #Release the camera and destry all windows
+    def release_camera(self) -> None:
+        
+        if self.cap is not None:
+            self.cap.release()
+            self.cap = None
+            cv.destroyAllWindows()
