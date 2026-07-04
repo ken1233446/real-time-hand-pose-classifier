@@ -144,7 +144,7 @@ class HandDetector:
 
         except Exception as e:
             raise RuntimeError("MediaPipe processing failed!") from e
-        
+            
         #Return the 21 landmarks
         return validated_unnormalized_landmarks
 
