@@ -1,20 +1,15 @@
 import numpy as np
 import json
+import mediapipe as mp
 
-from typing import Protocol
 from pathlib import Path
 
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.vision import HandLandmarkerOptions, HandLandmarker
 from mediapipe.tasks.python import BaseOptions
+from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 
-#Protocal for the landmarks
-class LandmarkProto(Protocol):
-    x: float
-    y: float
-    z: float
-
-#Main Function
+#Main Function.
 class HandDetector:
 
     """ 
@@ -56,14 +51,14 @@ class HandDetector:
         base_options = BaseOptions(model_asset_path = str(model_path))
 
         #Initialize the MediaPipe Hands inference configurations.
-        options = vision.HandLandmarkerOptions ( 
+        options = vision.HandLandmarkerOptions( 
             
             #Initialize the configurations of hand detector.
             base_options = base_options,
             num_hands = int(self.config.get("max_num_hands", 2)),
-            min_hand_detection_confidence = float(self.config.get("min_detection_confidence", 0.5)),
-            min_hand_presence_confidence = float(self.config.get("min_tracking_confidence", 0.5)),
-            min_tracking_confidence = float(self.config.get("min_tracking_confidence", 0.5))
+            #min_hand_detection_confidence = float(self.config.get("min_detection_confidence", 0.5)),
+            #min_hand_presence_confidence = float(self.config.get("min_tracking_confidence", 0.5)),
+            #min_tracking_confidence = float(self.config.get("min_tracking_confidence", 0.5))
         )
 
         #Initiate the Hand detector.
@@ -93,7 +88,7 @@ class HandDetector:
         return frame
 
     #Validation of landmarks.
-    def validate_hand_landmark(self, landmarks: list[list[LandmarkProto]]) -> list[list[LandmarkProto]]:
+    def validate_hand_landmark(self, landmarks: list[list[NormalizedLandmark]]) -> list[list[NormalizedLandmark]]:
         
         if landmarks is None:
             raise ValueError("No landmarks detected!")
@@ -122,7 +117,7 @@ class HandDetector:
         return landmarks
 
     #Hand landmark detector | Return: UnNormalized 21 Hand landmarks
-    def detect_hands(self, rgb_frames: np.ndarray) -> list[list[LandmarkProto]]:
+    def detect_hands(self, rgb_frames: np.ndarray) -> list[list[NormalizedLandmark]]:
 
         #Validate rgb_frames first
         validated_frames = self.validate_input(rgb_frames)
@@ -136,7 +131,7 @@ class HandDetector:
                 Mediapipe task can't handle raw Numpy matrix. Wrap it in a special
                 container mediapipe task can understand and process.
             """
-            formatted_frames = vision.Image(image_format=vision.ImageFormat.SRGB, data = validated_frames)
+            formatted_frames = mp.Image(image_format=mp.ImageFormat.SRGB, data = validated_frames)
             
             #Process the 21 landmarks from formatted frames.
             result = self.hand_detector.detect(formatted_frames)

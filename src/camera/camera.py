@@ -57,7 +57,7 @@ class Camera:
         #Check if camera is opened 
         if not self.cap.isOpened():
             raise RuntimeError(f"Error: Could not open the camera stream at index {camera_indx}.")
-        print("Camera successfully initialized.")
+        print("\nCamera successfully initialized.")
         
         return self.cap
 
@@ -96,18 +96,19 @@ class Camera:
             self.cap = None
 
 #Frame control Operations
-class FrameViewer:
+class FrameControl:
    
     """
     All Frame operations
     """
+
     #Initialize the Name of Window.
-    def __init__(self, window_name = "Live Stream") -> None:
+    def __init__(self, window_name = "Hand Pose Recognition") -> None:
         self.window_name = window_name
 
     #Show the Camera current frame/Window.
     def show(self, frame: np.ndarray) -> None:
-        return cv.imshow(self.window_name, frame)
+        cv.imshow(self.window_name, frame)
     
     #Initialazation of key operation.
     def operation_key(self) -> int:

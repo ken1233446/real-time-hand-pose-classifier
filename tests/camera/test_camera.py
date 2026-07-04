@@ -1,4 +1,4 @@
-from src.camera.camera import Camera, FrameViewer
+from src.camera.camera import Camera, FrameControl
 import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
@@ -250,7 +250,7 @@ class TestFrameViewer:
         - Prevent shared state
         - Ensure deterministic behavior
         """
-        self.viewer = FrameViewer(window_name="TestWindow")
+        self.viewer = FrameControl(window_name="TestWindow")
 
         self.mock_frame = np.zeros((100, 100, 3), dtype=np.uint8)
 
