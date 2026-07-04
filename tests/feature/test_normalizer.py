@@ -21,7 +21,7 @@ class TestNormalizerValidation():
 
     #Test if Landmark is a valid Data stype
     def test_validate_not_list(self):
-        with pytest.raises(TypeError, match= f"Expected a list."):
+        with pytest.raises(TypeError, match= "Expected a list."):
             self.normalizer.validate(self.invalid_data_type)
     
     #Test if Landmark is empty
@@ -31,7 +31,7 @@ class TestNormalizerValidation():
 
     #Test if List have 21 Landmarks
     def test_validate_requires_21_landmarks(self):
-        with pytest.raises(ValueError, match= (f"Expected 21 tuples of landmarks.")):
+        with pytest.raises(ValueError, match= ("Expected 21 tuples of landmarks.")):
             self.normalizer.validate(self.invalid_landmark_amount)
     
     #Test if landmark have 3 coordinates

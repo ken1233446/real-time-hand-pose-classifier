@@ -148,7 +148,7 @@ class HandDetector:
             validated_unnormalized_landmarks = self.validate_hand_landmark(landmarks)
 
         except Exception as e:
-            raise RuntimeError(f"MediaPipe processing failed!") from e
+            raise RuntimeError("MediaPipe processing failed!") from e
         
         #Return the 21 landmarks
         return validated_unnormalized_landmarks
