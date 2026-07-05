@@ -8,42 +8,12 @@ from detection.hand_detector import HandDetector
 from feature.normalizer import Normalizer
 #Keyboard_operations Module
 from utils.keyboard_operations import KeyboardOps
+#filesystem Module
+from utils.filesystem import FileSystem
+#text_box Module
+from ui.text_box import TextBox
 
 from pathlib import Path
-
-import cv2 as cv
-import numpy as np
-
-#Draw Temporary Text box.
-def text_box(frame: np.ndarray, text: str) -> None:
-    
-    # Draw textbox
-    cv.rectangle(frame, (100, 410), (500, 450), (255,255,255), 2)
-    
-    #Draw current text.
-    cv.putText(frame, text, (110,440),cv.FONT_HERSHEY_SIMPLEX,1, (255,255,255), 2)
-
-#Folder creation. | Return: text
-def folder_creation(folder_path: Path, text: str) -> str:
-    
-    #Create folder for dataset.
-    try: 
-        folder_path.mkdir(parents=True)
-        print(f"New Pose folder created at {folder_path} named {text}")
-
-    #Check if the folder already exist.
-    except FileExistsError:
-        print(f"Folder already exists: {folder_path}")
-    
-    #Check for any Error in creating folder.
-    except OSError as e:
-        print(f"Error creating folder: {e}")
-
-    #Update the text to default empty after pressing enter.
-    text = ""
-
-    return text
-
 
 """
 Main Operation of the system.
@@ -64,10 +34,11 @@ def main():
     detect = HandDetector()
     normalizer = Normalizer()
     keyboard_ops = KeyboardOps()
+    text_box = TextBox()
+    filesystem = FileSystem()
 
     #Pipelines.
     landmark_pipeline = LandmarkPipeline(detect, normalizer)
-    
     
     #Variables:
     pose_label = ""
@@ -93,10 +64,10 @@ def main():
         #Grab each frame. Return: NDarray frames (BGR)
         frame = cam.get_frames()
 
-        #Draw Text box.
-        text_box(frame, pose_label)
+        #Draw Text box with updated pose_label (text).
+        frame = text_box.create_text_box(frame, pose_label)
 
-        #Show the window Screen
+        #Show the latest window Screen
         view.show(frame)
 
         #Convert the BRG -> RGB frames. | Return: RGB frames.
@@ -110,8 +81,9 @@ def main():
             break
 
         #When ENTER is pressed, it create a folder for the pose dataset (PNG or JPEG).
+        #And Update the text to default empty.
         if key == ENTER_KEY:  # ENTER key
-           folder_creation(dataset_folder_path, pose_label)
+           frame = filesystem.create_folder(dataset_folder_path, pose_label)
            
         #Get landmarks
         if key == SAVE_POSE_KEY:
@@ -120,7 +92,7 @@ def main():
             print(f"\nLandmark is successfully extracted\n The landmarks:\n {result}")
             print(f"\nInfos:\nData type: {type(result)}\nNumber of Landmark:{len(result)}")
         
-        #Handle text box and update the texts.
+        #Handle text box input and update the texts.
         pose_label = keyboard_ops.update_text_input(key, pose_label)
 
     #Release resources opened.   
