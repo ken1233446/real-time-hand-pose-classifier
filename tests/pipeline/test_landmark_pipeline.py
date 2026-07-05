@@ -1,4 +1,4 @@
-from pipeline.landmark_pipeline import LandmarkPipeline
+from src.pipeline.landmark_pipeline import LandmarkPipeline
 import numpy as np
 
 
