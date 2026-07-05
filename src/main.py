@@ -1,36 +1,18 @@
+#Pipelines.
+from pipeline.landmark_pipeline import LandmarkPipeline
 #Camera Module
 from camera.camera import Camera, FrameControl
 #Hand detector Module
 from detection.hand_detector import HandDetector
 #Normalizer Module
 from feature.normalizer import Normalizer
+#Keyboard_operations Module
+from utils.keyboard_operations import KeyboardOps
+
 from pathlib import Path
-from typing import List
 
 import cv2 as cv
 import numpy as np
-
-#Get the 21 Normalized Landmarks. Return: 21 Normalized Landmarks.
-def extract_normalized_landmarks(rgb_frames: np.ndarray, detect: HandDetector, normalizer: Normalizer) -> List[float]:
-    
-    """
-    Pipeline:
-        rgb_frames (from camera → grab grames → convert BGR to RGB)
-            ↓
-        hand_detector.py (Extract the 21 landmarks of hands.)
-            ↓
-        normalizer.py (LandmarkProcesser → Make the landmarks relative to wrist, and proper ratio.)
-            ↓
-        Output (Extracted normalized landmarks)
-    """
-
-    #Process RGB frames. Return: UnNormalized 21 Hand landmarks.
-    unnormalized_landmarks = detect.detect_hands(rgb_frames)
-
-    #Convert Normalized the landmarks. Return: Normalized landmarks.
-    normalized_landmarks = normalizer.transform(unnormalized_landmarks)
-
-    return normalized_landmarks
 
 #Draw Temporary Text box.
 def text_box(frame: np.ndarray, text: str) -> None:
@@ -40,19 +22,6 @@ def text_box(frame: np.ndarray, text: str) -> None:
     
     #Draw current text.
     cv.putText(frame, text, (110,440),cv.FONT_HERSHEY_SIMPLEX,1, (255,255,255), 2)
-
-#Use for text box.
-def key_operations(key: int, text: str) -> str:
-
-    #Key Operations.
-    if key == 8: #When Backspace is entered it subtract the pose_label string.
-        text = text[:-1]
-
-    #All keys except the conditions will update the pose label variable.
-    elif 32 <= key <= 126 and key != ord('s') and key != ord('q'):
-        text += chr(key)
-
-    return text
 
 #Folder creation. | Return: text
 def folder_creation(folder_path: Path, text: str) -> str:
@@ -70,7 +39,7 @@ def folder_creation(folder_path: Path, text: str) -> str:
     except OSError as e:
         print(f"Error creating folder: {e}")
 
-    #Set the text to default empty after pressing enter.
+    #Update the text to default empty after pressing enter.
     text = ""
 
     return text
@@ -81,6 +50,11 @@ Main Operation of the system.
 """
 def main():
 
+    #
+    CLOSE_KEY = 27 #ESC Key.
+    SAVE_POSE_KEY = 9 #TAB Key.
+    ENTER_KEY = 13 #ENTER Key.
+
     #Set Base directory of project folder.
     BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -89,26 +63,33 @@ def main():
     view = FrameControl()
     detect = HandDetector()
     normalizer = Normalizer()
+    keyboard_ops = KeyboardOps()
+
+    #Pipelines.
+    landmark_pipeline = LandmarkPipeline(detect, normalizer)
+    
     
     #Variables:
     pose_label = ""
 
-    #Folder creation for datasets (PNG or JPEG).
+    #Folder path for datasets (PNG or JPEG).
     dataset_folder_path = BASE_DIR / "data" / "raw" / pose_label
 
     #Initialize the camera.
     cam.open_camera()
 
+    """
+    Why:
+        A continuous loop is used to fetch frames from 
+        the video stream in real time. The loop runs 
+        until an exit condition is met, 
+        allowing controlled termination of the capture process.
+    """
     while True:
+
         #Folder creation for datasets (PNG or JPEG).
         dataset_folder_path = BASE_DIR / "data" / "raw" / pose_label
-        """
-        Why:
-            A continuous loop is used to fetch frames from 
-            the video stream in real time. The loop runs 
-            until an exit condition is met, 
-            allowing controlled termination of the capture process.
-        """
+        
         #Grab each frame. Return: NDarray frames (BGR)
         frame = cam.get_frames()
 
@@ -125,25 +106,25 @@ def main():
         key = view.operation_key()
 
         #Close the window.
-        if key == ord('q'):
+        if key == CLOSE_KEY:
             break
 
         #When ENTER is pressed, it create a folder for the pose dataset (PNG or JPEG).
-        if key == 13:  # ENTER key
+        if key == ENTER_KEY:  # ENTER key
            folder_creation(dataset_folder_path, pose_label)
            
         #Get landmarks
-        if key == ord('s'):
+        if key == SAVE_POSE_KEY:
             #Get the 21 Normalized Landmarks
-            result = extract_normalized_landmarks(rgb_frames, detect, normalizer)
+            result = landmark_pipeline.extract(rgb_frames)
             print(f"\nLandmark is successfully extracted\n The landmarks:\n {result}")
             print(f"\nInfos:\nData type: {type(result)}\nNumber of Landmark:{len(result)}")
         
-        #Key Operations for text box.
-        pose_label = key_operations(key, pose_label)
+        #Handle text box and update the texts.
+        pose_label = keyboard_ops.update_text_input(key, pose_label)
 
-        
-    detect.close_mediapipe()
+    #Release resources opened.   
+    detect.close_mediapipe() 
     cam.release_camera()
     view.close()
 
