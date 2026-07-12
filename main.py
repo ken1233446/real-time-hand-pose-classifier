@@ -123,7 +123,7 @@ def main():
             """
             Why counter?:
                 Counter act as a metadata for naming the numbers of frame(image) dataset inside 
-                a folder.
+                respective pose folders.
             """
             COUNTER += 1
 
