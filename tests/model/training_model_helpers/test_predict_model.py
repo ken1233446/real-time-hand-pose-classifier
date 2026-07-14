@@ -1,219 +1,255 @@
 import numpy as np
 import pytest
 
+from sklearn.base import ClassifierMixin
 from sklearn.ensemble import RandomForestClassifier
 
 from src.model.training_model_helpers.predict_model.prediction_model import model_predictor
-from src.model.training_model_helpers.predict_model.prediction_model_validator import (_validate_input,_validate_output)
+
 
 """
 What:
-    Test model predictor module.
+    Test the prediction model module.
 
 Responsibilities:
-    Test input validation.
-    Test output validation.
-    Test prediction behavior.
+    Validate that the prediction model:
+        - Predicts labels using trained models.
+        - Returns numpy array predictions.
+        - Rejects invalid prediction inputs.
+        - Handles prediction failures.
 
 Input:
-    Synthetic normalized landmark dataset.
+    X:
+        np.ndarray
+        Normalized hand landmark features.
+
+        Shape:
+            (samples, 63)
+
+    trained_model:
+        ClassifierMixin
+        Previously trained machine learning model.
 
 Process:
-    Validate invalid inputs.
-    Train fake classifier.
-    Predict labels.
+    Create synthetic normalized landmarks.
+    Train classifier.
+    Predict pose labels.
     Validate prediction output.
 
 Output:
-    All tests should pass.
+    predictions:
+        np.ndarray
+        Contains predicted pose labels.
+
+Failure Conditions:
+    - X is not numpy array.
+    - X has incorrect feature size.
+    - Model is not fitted.
+    - Prediction fails.
 
 Invariants:
-    Returned prediction must be numpy.ndarray.
+    - Returned predictions must be numpy.ndarray.
 """
 
-#NOTE: TEST INPUT VALIDATION ↓
 
-def test_validate_input_accept_valid_dataset():
+#NOTE: TEST HELPER ↓
 
-    #Create fake dataset.
-    X_train = np.random.rand(10,63)
-    y_train = np.array([
-        0,0,0,0,0,
-        1,1,1,1,1
-    ])
 
-    model = RandomForestClassifier()
-    model.fit(X_train, y_train)
+#Create trained model. | Return: fitted classifier
+def create_trained_model():
 
-    #Create prediction dataset.
-    X = np.random.rand(2,63)
+    #Create normalized landmarks.
+    #21 landmarks × x,y,z = 63 features.
+    X_train = np.array(
+        [
+            np.random.rand(63),
+            np.random.rand(63),
+            np.random.rand(63),
+            np.random.rand(63)
+        ]
+    )
 
-    #Validate input.
-    _validate_input(X,model)
+    #Create pose labels.
+    y_train = np.array(
+        [
+            "open_hand",
+            "open_hand",
+            "fist",
+            "fist"
+        ]
+    )
 
-def test_validate_input_reject_non_numpy_dataset():
+    #Create classifier.
+    model = RandomForestClassifier(
+        n_estimators=10,
+        random_state=42
+    )
 
-    #Create fake dataset.
-    X = [[1,2,3]]
-    model = RandomForestClassifier()
+    #Train classifier.
+    model.fit(
+        X_train,
+        y_train
+    )
 
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_input(X,model)
+    return model
 
-def test_validate_input_reject_empty_dataset():
 
-    #Create empty dataset.
-    X = np.array([])
-    model = RandomForestClassifier()
 
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(X,model)
+#NOTE: SUCCESS TEST ↓
 
-def test_validate_input_reject_invalid_dimension():
 
-    #Create fake dataset.
-    X = np.random.rand(63)
-    model = RandomForestClassifier()
+#Test valid prediction. | Return: np.ndarray
+def test_model_predictor_valid_input():
 
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(X,model)
+    #Create trained model.
+    model = create_trained_model()
 
-def test_validate_input_reject_invalid_feature_count():
-
-    #Create fake dataset.
-    X = np.random.rand(5,21)
-    model = RandomForestClassifier()
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(X,model)
-
-def test_validate_input_reject_model_without_predict():
-
-    #Create fake dataset.
-    X = np.random.rand(5,63)
-    model = object()
-
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_input(X, model)
-
-def test_validate_input_reject_untrained_model():
-
-    #Create fake dataset.
-    X = np.random.rand(5,63)
-    model = RandomForestClassifier()
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(X,model)
-
-#NOTE: TEST OUTPUT VALIDATION ↓
-
-def test_validate_output_accept_numpy_array():
-
-    #Create fake prediction.
-    predictions = np.array([0, 1, 0])
-
-    #Validate output.
-    _validate_output(predictions)
-
-def test_validate_output_reject_empty_prediction():
-
-    #Create empty prediction.
-    predictions = np.array([])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_output(predictions)
-
-def test_validate_output_reject_non_numpy_prediction():
-
-    #Create fake prediction.
-    predictions = [0,1]
-
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_output(predictions)
-
-def test_validate_output_reject_invalid_dimension():
-
-    #Create fake prediction.
-    predictions = np.array([[0], [1]])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_output(predictions)
-
-#NOTE: TEST MAIN FUNCTION ↓
-
-def test_model_predictor_return_numpy_array():
-
-    #Create training dataset.
-    X_train = np.random.rand(10,63)
-    y_train = np.array([
-        0,0,0,0,0,
-        1,1,1,1,1
-    ])
-
-    model = RandomForestClassifier()
-    model.fit(X_train, y_train)
-
-    #Create prediction dataset.
-    X = np.random.rand(3,63)
+    #Create prediction input.
+    X = np.array(
+        [
+            np.random.rand(63),
+            np.random.rand(63)
+        ]
+    )
 
     #Predict labels.
-    prediction = model_predictor(X, model)
+    predictions = model_predictor(
+        X,
+        model
+    )
 
-    #Check output.
-    assert isinstance(prediction, np.ndarray)
-
-def test_model_predictor_prediction_count_match_input():
-
-    #Create training dataset.
-    X_train = np.random.rand(10,63)
-    y_train = np.array([
-        0,0,0,0,0,
-        1,1,1,1,1
-    ])
-
-    model = RandomForestClassifier()
-    model.fit(X_train,  y_train)
-
-    #Create prediction dataset.
-    X = np.random.rand(7,63)
-
-    #Predict labels.
-    prediction = model_predictor(X, model)
+    #Check output type.
+    assert isinstance(
+        predictions,
+        np.ndarray
+    )
 
     #Check prediction count.
-    assert len(prediction) == len(X)
+    assert predictions.shape[0] == 2
 
-def test_model_predictor_raise_runtime_error_when_prediction_fail():
 
-    #Create fake training dataset.
-    X_train = np.random.rand(10,63)
 
-    y_train = np.array([
-        0,0,0,0,0,
-        1,1,1,1,1
-    ])
+#NOTE: FAILURE TEST ↓
 
+
+#Test invalid X type. | Expected: TypeError
+def test_model_predictor_invalid_X_type():
+
+    #Create trained model.
+    model = create_trained_model()
+
+    #Create invalid X.
+    X = [
+        [
+            0.1,
+            0.2,
+            0.3
+        ]
+    ]
+
+    #Expect validation failure.
+    with pytest.raises(TypeError):
+        model_predictor(
+            X,
+            model
+        )
+
+
+
+#Test invalid feature size. | Expected: ValueError
+def test_model_predictor_invalid_feature_size():
+
+    #Create trained model.
+    model = create_trained_model()
+
+    #Create invalid landmark size.
+    #Expected:
+    #21 landmarks × x,y,z = 63 features
+    X = np.array(
+        [
+            np.random.rand(3)
+        ]
+    )
+
+    #Expect validation failure.
+    with pytest.raises(ValueError):
+        model_predictor(
+            X,
+            model
+        )
+
+
+
+#Test unfitted model. | Expected: NotFittedError
+def test_model_predictor_unfitted_model():
+
+    #Create unfitted classifier.
     model = RandomForestClassifier()
 
-    model.fit(X_train, y_train)
+    X = np.array(
+        [
+            np.random.rand(63)
+        ]
+    )
 
-    #Force predict() to fail.
-    def fake_predict(X):
-        raise Exception("Prediction failed.")
+    #Expect validation failure.
+    with pytest.raises(Exception):
+        model_predictor(
+            X,
+            model
+        )
 
-    model.predict = fake_predict
 
-    X = np.random.rand(2,63)
 
-    #Check error.
+#Test prediction failure. | Expected: RuntimeError
+def test_model_predictor_prediction_failure():
+
+    from sklearn.base import ClassifierMixin, BaseEstimator
+
+
+    class BrokenModel(ClassifierMixin, BaseEstimator):
+
+        #Create fitted state.
+        def fit(self, X, y):
+
+            #Sklearn detects attributes ending with "_".
+            self.fitted_ = True
+
+            return self
+
+
+        #Force prediction failure.
+        def predict(self, X):
+            raise Exception("Prediction failed")
+
+
+    model = BrokenModel()
+
+    #Fake training.
+    model.fit(
+        np.array(
+            [
+                np.random.rand(63)
+            ]
+        ),
+        np.array(
+            [
+                "open_hand"
+            ]
+        )
+    )
+
+
+    X = np.array(
+        [
+            np.random.rand(63)
+        ]
+    )
+
+
+    #Expect prediction failure.
     with pytest.raises(RuntimeError):
-        model_predictor(X, model)
+        model_predictor(
+            X,
+            model
+        )

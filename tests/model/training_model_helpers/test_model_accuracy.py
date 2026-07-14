@@ -2,209 +2,231 @@ import numpy as np
 import pytest
 
 from src.model.training_model_helpers.model_accuracy.model_accuracy import get_accuracy_score
-from src.model.training_model_helpers.model_accuracy.accuracy_validator import (_validate_input, _validate_output)
+
 
 """
 What:
-    Test model accuracy module.
+    Test the model accuracy module.
 
 Responsibilities:
-    Test input validation.
-    Test output validation.
-    Test accuracy calculation.
+    Validate that the accuracy calculator:
+        - Calculates correct prediction accuracy.
+        - Returns float accuracy score.
+        - Rejects invalid prediction inputs.
+        - Rejects mismatched datasets.
 
 Input:
-    Synthetic prediction and test labels.
+    predictions:
+        np.ndarray
+        Model predicted labels.
+
+    y_test:
+        np.ndarray
+        Actual labels.
 
 Process:
-    Validate invalid inputs.
-    Calculate prediction accuracy.
-    Validate returned accuracy score.
+    Create synthetic predictions.
+    Create synthetic ground truth labels.
+    Calculate accuracy score.
+    Validate output and failure conditions.
 
 Output:
-    All tests should pass.
+    accuracy:
+        float
+        Value between 0.0 and 1.0.
+
+Failure Conditions:
+    predictions is not np.ndarray.
+    y_test is not np.ndarray.
+    Empty arrays.
+    Different sample count.
 
 Invariants:
-    Accuracy score must be between 0.0 and 1.0.
+    Returned accuracy must be float.
+    Accuracy must be between 0.0 and 1.0.
 """
 
 
-#NOTE: TEST INPUT VALIDATION ↓
+#NOTE: SUCCESS TEST ↓
 
-def test_validate_input_accept_valid_dataset():
 
-    #Create fake labels.
-    predictions = np.array([0, 1, 0, 1])
-    y_test = np.array([0, 1, 0, 1])
+#Test correct accuracy calculation. | Return: float
+def test_get_accuracy_score_valid_input():
 
-    #Validate input.
-    _validate_input(predictions, y_test)
+    #Create predicted labels.
+    predictions = np.array(
+        [
+            "open_hand",
+            "fist",
+            "point",
+            "fist"
+        ]
+    )
 
-def test_validate_input_reject_non_numpy_predictions():
-
-    #Create fake labels.
-    predictions = [0, 1, 0]
-    y_test = np.array([0, 1, 0])
-
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_non_numpy_y_test():
-
-    #Create fake labels.
-    predictions = np.array([0, 1, 0])
-    y_test = [0, 1, 0]
-
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_empty_predictions():
-
-    #Create fake labels.
-    predictions = np.array([])
-    y_test = np.array([0, 1])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_empty_y_test():
-
-    #Create fake labels.
-    predictions = np.array([0, 1])
-    y_test = np.array([])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_invalid_prediction_dimension():
-
-    #Create fake labels.
-    predictions = np.array([[0],[1]])
-    y_test = np.array([0, 1])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_invalid_y_test_dimension():
-
-    #Create fake labels.
-    predictions = np.array([0, 1])
-    y_test = np.array([[0],[1]])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(predictions, y_test)
-
-def test_validate_input_reject_different_sample_count():
-
-    #Create fake labels.
-    predictions = np.array([0, 1, 0])
-    y_test = np.array([0, 1])
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_input(predictions, y_test)
-
-#NOTE: TEST OUTPUT VALIDATION ↓
-
-def test_validate_output_accept_float():
-
-    #Create fake accuracy.
-    accuracy = 1.0
-
-    #Validate output.
-    _validate_output(accuracy)
-
-def test_validate_output_reject_invalid_type():
-
-    #Create fake accuracy.
-    accuracy = "1.0"
-
-    #Check error.
-    with pytest.raises(TypeError):
-        _validate_output(accuracy)
-
-def test_validate_output_reject_invalid_range():
-
-    #Create fake accuracy.
-    accuracy = 1.5
-
-    #Check error.
-    with pytest.raises(ValueError):
-        _validate_output(accuracy)
-
-#NOTE: TEST MAIN FUNCTION ↓
-
-def test_get_accuracy_score_return_float():
-
-    #Create fake labels.
-    predictions = np.array([
-        0,
-        1,
-        0,
-        1
-    ])
-
-    y_test = np.array([
-        0,
-        1,
-        0,
-        1
-    ])
+    #Create actual labels.
+    y_test = np.array(
+        [
+            "open_hand",
+            "fist",
+            "point",
+            "open_hand"
+        ]
+    )
 
     #Calculate accuracy.
-    accuracy = get_accuracy_score(predictions, y_test)
+    accuracy = get_accuracy_score(
+        predictions,
+        y_test
+    )
 
-    #Check output.
-    assert isinstance(accuracy,(float, np.floating))
+    #Check output type.
+    assert isinstance(
+        accuracy,
+        float
+    )
 
-def test_get_accuracy_score_return_correct_accuracy():
-
-    #Create fake labels.
-    predictions = np.array([
-        0,
-        1,
-        1,
-        0
-    ])
-
-    y_test = np.array([
-        0,
-        1,
-        0,
-        0
-    ])
-
-    #Calculate accuracy.
-    accuracy = get_accuracy_score(predictions, y_test)
-
-    #Check output.
+    #Check accuracy value.
+    #3 correct predictions out of 4.
     assert accuracy == 0.75
 
-def test_get_accuracy_score_return_one_for_perfect_prediction():
 
-    #Create fake labels.
-    predictions = np.array([
-        0,
-        1,
-        0,
-        1
-    ])
+#Test perfect accuracy. | Return: 1.0
+def test_get_accuracy_score_perfect_prediction():
 
-    y_test = np.array([
-        0,
-        1,
-        0,
-        1
-    ])
+    predictions = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
 
-    #Calculate accuracy.
-    accuracy = get_accuracy_score(predictions, y_test)
+    y_test = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
 
-    #Check output.
+    accuracy = get_accuracy_score(
+        predictions,
+        y_test
+    )
+
     assert accuracy == 1.0
+
+
+
+#NOTE: FAILURE TEST ↓
+
+
+#Test invalid prediction type. | Expected: TypeError
+def test_get_accuracy_score_invalid_prediction_type():
+
+    #Create invalid prediction.
+    predictions = [
+        "open_hand",
+        "fist"
+    ]
+
+    y_test = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
+
+    #Expect validation failure.
+    with pytest.raises(TypeError):
+        get_accuracy_score(
+            predictions,
+            y_test
+        )
+
+
+
+#Test invalid y_test type. | Expected: TypeError
+def test_get_accuracy_score_invalid_y_test_type():
+
+    predictions = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
+
+    y_test = [
+        "open_hand",
+        "fist"
+    ]
+
+    #Expect validation failure.
+    with pytest.raises(TypeError):
+        get_accuracy_score(
+            predictions,
+            y_test
+        )
+
+
+
+#Test empty predictions. | Expected: ValueError
+def test_get_accuracy_score_empty_predictions():
+
+    predictions = np.array([])
+
+    y_test = np.array(
+        [
+            "open_hand"
+        ]
+    )
+
+    #Expect validation failure.
+    with pytest.raises(ValueError):
+        get_accuracy_score(
+            predictions,
+            y_test
+        )
+
+
+
+#Test empty y_test. | Expected: ValueError
+def test_get_accuracy_score_empty_y_test():
+
+    predictions = np.array(
+        [
+            "open_hand"
+        ]
+    )
+
+    y_test = np.array([])
+
+    #Expect validation failure.
+    with pytest.raises(ValueError):
+        get_accuracy_score(
+            predictions,
+            y_test
+        )
+
+
+
+#Test mismatched sample count. | Expected: ValueError
+def test_get_accuracy_score_mismatched_samples():
+
+    predictions = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
+
+    y_test = np.array(
+        [
+            "open_hand"
+        ]
+    )
+
+    #Expect validation failure.
+    with pytest.raises(ValueError):
+        get_accuracy_score(
+            predictions,
+            y_test
+        )

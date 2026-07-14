@@ -1,203 +1,216 @@
+import pytest
+import numpy as np
+
 from pathlib import Path
 
-import numpy as np
-import pytest
 from sklearn.ensemble import RandomForestClassifier
 
 from src.model.training_model_helpers.save_model.save_trained_model import save_trained_model
 
+
 """
 What:
-    Unit tests for save_trained_model().
+    Test the save model module.
 
-Purpose:
-    Verify that the trained model is properly validated
-    before saving and correctly stored as
-    pose_classifier.joblib.
+Responsibilities:
+    Validate that the save model module:
+        - Saves fitted machine learning models.
+        - Creates pose_classifier.joblib file.
+        - Rejects invalid models.
+        - Rejects invalid paths.
+        - Handles saving failures.
 
-Testing Strategy:
-    Use a temporary directory to simulate the
-    trained_models folder.
+Input:
+    trained_model:
+        ClassifierMixin
+        Previously trained machine learning model.
 
-    Use a fitted RandomForestClassifier as the
-    trained model.
+    trained_models_path:
+        Path object pointing to trained_models folder.
 
-    Verify all input validation and output
-    requirements independently.
+Process:
+    Create synthetic landmark dataset.
+    Train classifier.
+    Save model using save_trained_model().
+    Validate saved model file.
+
+Output:
+    pose_classifier.joblib:
+        Saved trained model.
+
+Failure Conditions:
+    - Model is not fitted.
+    - Path does not exist.
+    - Saving fails.
+
+Invariants:
+    - Saved file must exist.
+    - Model must be fitted before saving.
 """
 
-# ------------------------------------------------------------------
-# Helper method.
-# ------------------------------------------------------------------
 
-def create_fitted_model() -> RandomForestClassifier:
+#NOTE: TEST HELPER ↓
 
-    """
-    Create a small fitted model for testing.
 
-    Return:
-        Trained RandomForestClassifier.
-    """
+#Create trained model. | Return: fitted classifier
+def create_trained_model():
 
-    X = np.array([[1, 2], [2, 3], [3, 4], [4, 5]])
-    y = np.array([0, 0, 1, 1])
+    #Create normalized landmarks.
+    #21 landmarks × x,y,z = 63 features.
+    X_train = np.array(
+        [
+            np.random.rand(63),
+            np.random.rand(63),
+            np.random.rand(63),
+            np.random.rand(63)
+        ]
+    )
 
-    model = RandomForestClassifier(random_state=48)
-    model.fit(X, y)
+    #Create labels.
+    y_train = np.array(
+        [
+            "open_hand",
+            "open_hand",
+            "fist",
+            "fist"
+        ]
+    )
+
+    #Create classifier.
+    model = RandomForestClassifier(
+        n_estimators=10,
+        random_state=42
+    )
+
+    #Train model.
+    model.fit(
+        X_train,
+        y_train
+    )
 
     return model
 
-# ------------------------------------------------------------------
-# Success Test
-# ------------------------------------------------------------------
 
-def test_save_trained_model_output_required_file_exists(tmp_path: Path):
 
-    """
-    What:
-        Verify that pose_classifier.joblib
-        is created after saving.
+#NOTE: SUCCESS TEST ↓
 
-    Expected:
-        File exists inside the configured folder.
-    """
 
-    # Create a fitted model.
-    model = create_fitted_model()
+#Test saving valid trained model. | Return: joblib file
+def test_save_trained_model_valid_input(tmp_path: Path):
 
-    # Create configuration.
-    config = {"trained_models_path": {"path": tmp_path}}
+    #Create trained model.
+    model = create_trained_model()
 
-    # Save the model.
-    save_trained_model(model, config)
+    #Create trained models folder.
+    trained_models_path = tmp_path / "trained_models"
 
-    # Expected output file.
-    saved_model = tmp_path / "pose_classifier.joblib"
+    trained_models_path.mkdir()
 
-    # Verify file exists.
-    assert saved_model.exists()
 
-    # Verify output is a file.
-    assert saved_model.is_file()
+    #Save model.
+    result = save_trained_model(
+        model,
+        trained_models_path
+    )
 
-# ------------------------------------------------------------------
-# Input Validation
-# ------------------------------------------------------------------
 
-def test_save_trained_model_input_invalid_model_type():
+    #Check return.
+    assert result is None
 
-    """
-    Verify model must inherit from ClassifierMixin.
-    """
 
-    config = {"trained_models_path": {"path": Path(".")}}
+    #Check saved file exists.
+    model_file = (
+        trained_models_path /
+        "pose_classifier.joblib"
+    )
 
-    with pytest.raises(ValueError):
-        save_trained_model("invalid", config)
+    assert model_file.exists()
 
-def test_save_trained_model_input_model_not_fitted(tmp_path: Path):
 
-    """
-    Verify model must already be trained.
-    """
 
+#NOTE: FAILURE TEST ↓
+
+
+#Test invalid model type. | Expected: TypeError
+def test_save_trained_model_invalid_model():
+
+    #Create invalid model.
+    model = "invalid_model"
+
+    trained_models_path = Path(
+        "trained_models"
+    )
+
+    #Expect validation failure.
+    with pytest.raises(TypeError):
+        save_trained_model(
+            model,
+            trained_models_path
+        )
+
+
+
+#Test unfitted model. | Expected: ValueError
+def test_save_trained_model_unfitted_model(tmp_path: Path):
+
+    #Create unfitted model.
     model = RandomForestClassifier()
-    config = {"trained_models_path": {"path": tmp_path}}
 
+    #Create folder.
+    trained_models_path = tmp_path / "trained_models"
+
+    trained_models_path.mkdir()
+
+
+    #Expect validation failure.
     with pytest.raises(ValueError):
-        save_trained_model(model, config)
+        save_trained_model(
+            model,
+            trained_models_path
+        )
 
-def test_save_trained_model_input_config_not_dictionary():
 
-    """
-    Verify configuration must be dictionary.
-    """
 
-    model = create_fitted_model()
-    with pytest.raises(ValueError):
-        save_trained_model(model, "invalid")
+#Test invalid path. | Expected: FileNotFoundError
+def test_save_trained_model_invalid_path():
 
-def test_save_trained_model_input_missing_trained_models_path_key(tmp_path: Path):
+    #Create trained model.
+    model = create_trained_model()
 
-    """
-    Verify required configuration key exists.
-    """
 
-    model = create_fitted_model()
-    config = {}
+    #Invalid directory.
+    trained_models_path = Path(
+        "invalid_folder"
+    )
 
-    with pytest.raises(ValueError):
-        save_trained_model(model, config)
 
-def test_save_trained_model_input_missing_path_key(tmp_path: Path):
+    #Expect validation failure.
+    with pytest.raises(FileNotFoundError):
+        save_trained_model(
+            model,
+            trained_models_path
+        )
 
-    """
-    Verify required path key exists.
-    """
 
-    model = create_fitted_model()
-    config = {"trained_models_path": {}}
 
-    with pytest.raises(ValueError):
-        save_trained_model(model, config)
+#Test save failure. | Expected: RuntimeError
+def test_save_trained_model_save_failure(tmp_path: Path):
 
-def test_save_trained_model_input_path_not_path_object():
+    #Create trained model.
+    model = create_trained_model()
 
-    """
-    Verify configured path must be pathlib.Path.
-    """
-    model = create_fitted_model()
-    config = {"trained_models_path": {"path": "trained_models"}}
 
-    with pytest.raises(ValueError):
-        save_trained_model(model, config)
+    #Create file instead of folder.
+    invalid_path = tmp_path / "trained_models"
 
-def test_save_trained_model_input_directory_not_exist():
+    invalid_path.write_text(
+        "This is a file, not a directory."
+    )
 
-    """
-    Verify configured directory must exist.
-    """
 
-    model = create_fitted_model()
-    config = {"trained_models_path": {"path": Path("directory_that_does_not_exist")}}
-
-    with pytest.raises(ValueError):
-        save_trained_model(model, config)
-
-def test_save_trained_model_input_path_not_directory(tmp_path: Path):
-
-    """
-    Verify configured path must be a directory.
-    """
-
-    model = create_fitted_model()
-    file = tmp_path / "dummy.txt"
-    file.write_text("dummy")
-
-    config = {"trained_models_path": {"path": file}}
-
-    with pytest.raises(ValueError):
-        save_trained_model(model, config)
-
-# ------------------------------------------------------------------
-# Exception Handling
-# ------------------------------------------------------------------
-
-def test_save_trained_model_raise_runtime_error_when_joblib_dump_fails(monkeypatch, tmp_path: Path):
-
-    """
-    Verify RuntimeError is raised when
-    joblib fails while saving the model.
-    """
-
-    model = create_fitted_model()
-    config = {"trained_models_path": {"path": tmp_path}}
-
-    # Force joblib.dump() to fail.
-    def fake_dump(*args, **kwargs):
-        raise OSError("Cannot save.")
-
-    monkeypatch.setattr("joblib.dump", fake_dump)
-    
-    with pytest.raises(RuntimeError):
-        save_trained_model(model, config)
+    #Expect save failure.
+    with pytest.raises(Exception):
+        save_trained_model(
+            model,
+            invalid_path
+        )

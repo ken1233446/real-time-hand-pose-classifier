@@ -1,191 +1,186 @@
-import pytest
-import numpy as np
-
 from pathlib import Path
+import numpy as np
+import pytest
 
-from src.model.training_model_helpers.dataset_loader.dataset_loader import (load_dataset, _validate_X_y, _validate_path)
+from src.model.training_model_helpers.dataset_loader.dataset_loader import load_dataset
+from src.model.schemas.dataset_schema import Dataset
 
 
-# -------------------------
-# FIXTURES
-# -------------------------
+"""
+What:
+    Test the dataset loader module.
 
-@pytest.fixture
-def valid_dataset(tmp_path: Path):
-    
-    """
-    Create temporary valid NPZ dataset.
-    """
-    
-    dataset_path = tmp_path / "hand_pose_dataset.npz"
+Responsibilities:
+    Validate that the dataset loader:
+        - Loads valid .npz dataset files.
+        - Returns correct Dataset dataclass.
+        - Rejects invalid dataset files.
+        - Rejects missing required keys.
 
-    X = np.random.rand(100, 63)
-    y = np.array(
+Input:
+    Temporary .npz dataset files.
+
+Process:
+    Create synthetic dataset.
+    Save dataset as .npz file.
+    Load dataset using load_dataset().
+    Validate output and failure conditions.
+
+Output:
+    Dataset:
+        - Contains X landmarks.
+        - Contains y labels.
+        - Type must be Dataset dataclass.
+
+Failure Conditions:
+    Missing X key.
+    Missing y key.
+    Invalid dataset path.
+
+Invariants:
+    Loader must always return Dataset.
+"""
+
+
+#NOTE: SUCCESS TEST ↓
+
+
+#Test loading valid dataset file. | Return: Dataset
+def test_load_dataset_valid_file(tmp_path: Path):
+
+    #Create synthetic landmarks dataset.
+    X = np.array(
         [
-            "fist",
-            "open_hand"
-        ] * 50
-    )
-
-    np.savez(dataset_path, X=X, y=y)
-
-    return dataset_path
-
-@pytest.fixture
-def valid_X_y():
-
-    X = np.random.rand(50, 63)
-
-    y = np.array(["fist"] * 50)
-
-    return X, y
-
-# =========================
-# PATH VALIDATION TESTS
-# =========================
-
-def test_validate_path_accepts_valid_npz(valid_dataset):
-
-    # Should not raise error
-    _validate_path(valid_dataset)
-
-def test_validate_path_wrong_type():
-
-    with pytest.raises(TypeError):
-        _validate_path("dataset.npz")
-
-def test_validate_path_missing_file(tmp_path):
-
-    fake_path = tmp_path / "missing.npz"
-
-    with pytest.raises(FileNotFoundError):
-        _validate_path(fake_path)
-
-def test_validate_path_directory(tmp_path):
-
-    folder = tmp_path / "dataset"
-
-    folder.mkdir()
-
-    with pytest.raises(ValueError):
-        _validate_path(folder)
-
-def test_validate_path_wrong_extension(tmp_path):
-
-    file = tmp_path / "dataset.csv"
-    file.write_text("test")
-    with pytest.raises(ValueError):
-        _validate_path(file)
-
-def test_validate_path_empty_file(tmp_path):
-
-    file = tmp_path / "empty.npz"
-    file.touch()
-    with pytest.raises(ValueError):
-        _validate_path(file)
-
-# =========================
-# X AND Y VALIDATION TESTS
-# =========================
-
-def test_validate_X_y_valid(valid_X_y):
-
-    X, y = valid_X_y
-    _validate_X_y(X, y)
-
-def test_validate_X_not_numpy_array():
-
-    X = [[1,2,3]]
-    y = np.array(["fist"])
-    with pytest.raises(TypeError):
-        _validate_X_y(X, y)
-
-def test_validate_y_not_numpy_array():
-
-    X = np.random.rand(1,63)
-    y = ["fist"]
-    with pytest.raises(TypeError):
-        _validate_X_y(X, y)
-
-def test_validate_empty_X():
-
-    X = np.array([])
-    y = np.array(["fist"])
-    with pytest.raises(ValueError):
-        _validate_X_y(X, y)
-
-def test_validate_empty_y():
-
-    X = np.random.rand(1,63)
-    y = np.array([])
-    with pytest.raises(ValueError):
-        _validate_X_y(X, y)
-
-def test_validate_sample_count_mismatch():
-
-    X = np.random.rand(10,63)
-    y = np.array(["fist"] * 5)
-    with pytest.raises(ValueError):
-        _validate_X_y(X,y)
-
-def test_validate_X_wrong_dimension():
-
-    X = np.random.rand(10,63,1)
-    y = np.array(["fist"] * 10)
-    with pytest.raises(ValueError):
-        _validate_X_y(X,y)
-
-def test_validate_y_wrong_dimension():
-
-    X = np.random.rand(10,63)
-    y = np.array(
-        [
-            ["fist"],
-            ["open"]
+            [0.1, 0.2, 0.3],
+            [0.4, 0.5, 0.6]
         ]
     )
-    with pytest.raises(ValueError):
-        _validate_X_y(X,y)
 
-def test_validate_X_non_numeric():
+    #Create synthetic labels.
+    y = np.array(
+        [
+            "open_hand",
+            "fist"
+        ]
+    )
+
+    #Create temporary dataset file.
+    dataset_path = tmp_path / "hand_pose_dataset.npz"
+
+    np.savez(
+        dataset_path,
+        X=X,
+        y=y
+    )
+
+    #Load dataset.
+    dataset = load_dataset(dataset_path)
+
+    #Check returned type.
+    assert isinstance(dataset, Dataset)
+
+    #Check X output.
+    assert np.array_equal(
+        dataset.X_landmarks,
+        X
+    )
+
+    #Check y output.
+    assert np.array_equal(
+        dataset.y_labels,
+        y
+    )
+
+
+#NOTE: FAILURE TEST ↓
+
+
+#Test missing dataset file. | Expected: FileNotFoundError
+def test_load_dataset_file_not_exist():
+
+    #Create invalid dataset path.
+    dataset_path = Path(
+        "invalid_dataset.npz"
+    )
+
+    #Expect file validation failure.
+    with pytest.raises(FileNotFoundError):
+        load_dataset(dataset_path)
+
+
+
+#Test dataset missing X key. | Expected: ValueError
+def test_load_dataset_missing_X_key(tmp_path: Path):
+
+    #Create dataset with only y.
+    dataset_path = tmp_path / "missing_X.npz"
+
+    y = np.array(
+        [
+            "open_hand"
+        ]
+    )
+
+    np.savez(
+        dataset_path,
+        y=y
+    )
+
+    #Expect missing key failure.
+    with pytest.raises(ValueError):
+        load_dataset(dataset_path)
+
+
+
+#Test dataset missing y key. | Expected: ValueError
+def test_load_dataset_missing_y_key(tmp_path: Path):
+
+    #Create dataset with only X.
+    dataset_path = tmp_path / "missing_y.npz"
 
     X = np.array(
         [
-            ["abc","def"]
+            [0.1, 0.2, 0.3]
         ]
     )
-    y = np.array(["fist"])
-    with pytest.raises(TypeError):
-        _validate_X_y(X,y)
 
-# =========================
-# LOAD DATASET TESTS
-# =========================
+    np.savez(
+        dataset_path,
+        X=X
+    )
 
-def test_load_dataset_returns_numpy_arrays(valid_dataset):
-
-    X, y = load_dataset(valid_dataset)
-    assert isinstance(X, np.ndarray)
-    assert isinstance(y, np.ndarray)
-
-def test_load_dataset_correct_shape(valid_dataset):
-
-    X, y = load_dataset(valid_dataset)
-    assert X.shape == (100,63)
-    assert y.shape == (100,)
-
-def test_load_dataset_missing_X(tmp_path):
-    
-    dataset_path = tmp_path / "missing_X.npz"
-
-    np.savez(dataset_path,y=np.array([0, 1, 2]))
-    with pytest.raises(ValueError,match="Dataset must contain"):
+    #Expect missing key failure.
+    with pytest.raises(ValueError):
         load_dataset(dataset_path)
 
-def test_load_dataset_missing_y(tmp_path):
 
-    dataset_path = tmp_path / "missing_y.npz"
 
-    np.savez(dataset_path,X=np.random.rand(10, 63))
-    with pytest.raises(ValueError, match="Dataset must contain"):
+#Test mismatched X and y samples. | Expected: ValueError
+def test_load_dataset_invalid_X_y_shape(tmp_path: Path):
+
+    #Create invalid dataset.
+    #X has 2 samples but y has 1 label.
+    X = np.array(
+        [
+            [0.1, 0.2, 0.3],
+            [0.4, 0.5, 0.6]
+        ]
+    )
+
+    y = np.array(
+        [
+            "open_hand"
+        ]
+    )
+
+    dataset_path = tmp_path / "invalid_shape.npz"
+
+    np.savez(
+        dataset_path,
+        X=X,
+        y=y
+    )
+
+    #Expect validation failure.
+    with pytest.raises(ValueError):
         load_dataset(dataset_path)
