@@ -109,7 +109,17 @@ class SavePoseDataset:
     #Save Landmarks and Labels into NPZ file
     def save_dataset(self, filepath: Union[str, Path] = DATA_SET_FILE) -> None:
 
-        """Converts internal lists to NumPy arrays, saves them, and flushes RAM."""
+        """
+        Converts internal lists to NumPy arrays and appends
+        new samples into the existing dataset.
+
+        Process:
+            Check if dataset already exists.
+            Load previous dataset.
+            Append new landmarks and labels.
+            Save updated dataset.
+            Clear temporary storage.
+        """
 
         if not self.x:
             self.logger.warning("No data found in temporary storage to save.")
@@ -123,14 +133,35 @@ class SavePoseDataset:
         except OSError as e:
             raise RuntimeError(f"Could not create directory for {filepath}") from e
 
-        # Convert to standard NumPy arrays.
-        X_array = np.asarray(self.x, dtype=np.float32)
-        y_array = np.asarray(self.y, dtype=str)
+        #Convert temporary storage into numpy arrays.
+        X_new = np.asarray(self.x, dtype=np.float32)
+        y_new = np.asarray(self.y, dtype=str)
+
+        #Check if dataset already exists.
+        if filepath.exists():
+            
+            old_dataset = np.load(filepath)
+
+            X_old = old_dataset["X"]
+            y_old = old_dataset["y"]
+
+            #Combine old and new dataset.
+            X_array = np.concatenate((X_old, X_new),axis=0)
+            y_array = np.concatenate((y_old, y_new),axis=0)
+
+        else:
+
+            X_array = X_new
+            y_array = y_new
 
         #Save compressed to save space and efficiency
-        np.savez_compressed(filepath, X=X_array, y=y_array, labels=np.asarray(sorted(self.labels)))
-
-        print(f"Dataset successfully saved to {filepath} named {self.labels}")
+        np.savez_compressed(filepath, X=X_array, y=y_array, labels=np.unique(y_array))
+        
+        print(
+            f"Dataset saved: {filepath}\n"
+            f"Samples: {len(X_array)}\n"
+            f"Classes: {np.unique(y_array)}"
+        )
 
         #Clear temporary storage after saving
         self.clear_temporary_storage()
