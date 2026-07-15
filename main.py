@@ -106,6 +106,16 @@ def main():
             #Save the 21 landmarks to NPZ file.
             result = save_pose_landmark.extract_and_save_landmark(state.pose_label, state.rgb_frame)
             
+            #Check if landmark exists.
+            if result is None:
+                print(
+                    "\nWARNING:"
+                    "\nNo landmarks detected."
+                    "\nPlease show your hand clearly and press TAB again."
+                )
+
+                continue
+            
             #Get the Counter key in the metadatafile of specified pose folder.
             COUNTER = metadata_manager.get_metadata(dataset_folder_path, "counter")
 

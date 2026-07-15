@@ -9,21 +9,37 @@ from mediapipe.tasks.python.vision import HandLandmarkerOptions, HandLandmarker
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 
+
+
 #Main Function.
 class HandDetector:
 
-    """ 
-    Detect the hands from Numpy matrix
+    """
+    HandDetector Contract
+
+    What:
+        Detect one or more hands from an RGB frame using MediaPipe Hand Landmarker.
+
+    Why:
+        Convert raw camera frames into structured hand landmarks that can be
+        processed by downstream modules such as the landmark normalizer and
+        classifier.
 
     Input:
-        Numpy Matrix of frames (RGB)
+        RGB Numpy Matrix (H x W x 3)
 
     Process:
-        Detect Palm
-        Plot 21 Hand landmarks
-    
+        Validate the RGB frame.
+        Convert the frame into MediaPipe Image format.
+        Detect hands using MediaPipe Hand Landmarker.
+        Validate the detected landmarks.
+
     Output:
-        UnNormalized 21 Hand landmarks | X Y Z
+        List[List[NormalizedLandmark]]
+            Detected hand landmarks.
+
+        None
+            Returned when no hand is detected in the current frame.
     """
 
     #Variables: self.hand_detector
@@ -66,6 +82,29 @@ class HandDetector:
 
     #Validation of inputs
     def validate_input(self, frame: np.ndarray) -> np.ndarray:
+        
+        """
+        Validate the RGB input frame.
+
+        Input:
+            frame: np.ndarray
+
+        Process:
+            Check if frame exists.
+            Check frame data type.
+            Check frame dimensions.
+            Check color channels.
+            Check image data type.
+
+        Output:
+            Validated RGB frame.
+
+        Failure Conditions:
+            Raise TypeError if the frame type is invalid.
+
+            Raise ValueError if the frame is empty or has
+            an invalid image shape.
+        """
 
         if frame is None:
             raise ValueError("No frame detected!")
@@ -88,68 +127,115 @@ class HandDetector:
         return frame
 
     #Validation of landmarks.
-    def validate_hand_landmark(self, landmarks: list[list[NormalizedLandmark]]) -> list[list[NormalizedLandmark]]:
+    def validate_hand_landmark(self, landmarks: list[list[NormalizedLandmark]] | None) -> list[list[NormalizedLandmark]] | None:
         
-        if landmarks is None:
-            raise ValueError("No landmarks detected!")
-        
+        """
+        Validate MediaPipe hand landmarks.
+
+        Input:
+            landmarks:
+                List[List[NormalizedLandmark]]
+                OR
+                None
+
+        Process:
+            Check if no hand is detected.
+            Validate the landmark container.
+            Validate each detected hand.
+            Validate each landmark coordinate.
+
+        Output:
+            Validated hand landmarks.
+
+            None
+                Returned when no hand is detected.
+
+        Failure Conditions:
+            Raise TypeError if the landmark structure is invalid.
+
+            Raise ValueError if a detected hand does not
+            contain exactly 21 landmarks.
+        """
+
+        #No hand detected.
+        if landmarks is None or len(landmarks) == 0:
+            return None
         if not isinstance(landmarks, list):
             raise TypeError("Invalid landmarks data type!")
-        
-        if len(landmarks) == 0:
-            raise ValueError("No hands detected!")
         
         for hand in landmarks: #Check each landmark.
             
             if not isinstance(hand, list):
                 raise TypeError("Each hand must be a list of landmarks!")
-
             if len(hand) != 21:
                 raise ValueError("Each hand must contain exactly 21 landmarks.")
 
             for landmark in hand:
+
                 if not hasattr(landmark, "x") or not hasattr(landmark, "y") or not hasattr(landmark, "z"):
                     raise TypeError("Invalid landmark object structure.")
-
                 if not isinstance(landmark.x, (int, float)):
                     raise TypeError("landmark.x must be numeric")
                    
         return landmarks
 
-    #Hand landmark detector | Return: UnNormalized 21 Hand landmarks
-    def detect_hands(self, rgb_frames: np.ndarray) -> list[list[NormalizedLandmark]]:
+    #Main Hand Detection Module. | Return: UnNormalized 21 Hand landmarks
+    def detect_hands(self, rgb_frames: np.ndarray) -> list[list[NormalizedLandmark]] | None:
+
+        """
+        Detect hand landmarks from an RGB frame.
+
+        Input:
+            rgb_frames:
+                RGB Numpy Matrix.
+
+        Process:
+            Validate the RGB frame.
+            Convert the frame into MediaPipe Image format.
+            Run MediaPipe Hand Landmarker.
+            Validate detected landmarks.
+
+        Output:
+            List[List[NormalizedLandmark]]
+                Validated hand landmarks.
+
+            None
+                Returned when no hand is detected.
+
+        Failure Conditions:
+            Raise RuntimeError when MediaPipe processing fails.
+        """
 
         #Validate rgb_frames first
         validated_frames = self.validate_input(rgb_frames)
 
-        #Catch any mediapipe process errors.
-        try:        
-
-            #Process the validated frames into MEDIAPIPE FORMAT.
-            """
-            Why:
-                Mediapipe task can't handle raw Numpy matrix. Wrap it in a special
-                container mediapipe task can understand and process.
-            """
-            formatted_frames = mp.Image(image_format=mp.ImageFormat.SRGB, data = validated_frames)
+        try:
+            formatted_frames = mp.Image(image_format=mp.ImageFormat.SRGB,data=validated_frames)
             
-            #Process the 21 landmarks from formatted frames.
             result = self.hand_detector.detect(formatted_frames)
 
-            #Extract the 21 landmarks.
             landmarks = result.hand_landmarks
 
-            #Validate the landmarks.
-            validated_unnormalized_landmarks = self.validate_hand_landmark(landmarks)
+            #Validate landmarks.
+            validated_landmarks = self.validate_hand_landmark(landmarks)
 
         except Exception as e:
             raise RuntimeError("MediaPipe processing failed!") from e
-            
-        #Return the 21 landmarks
-        return validated_unnormalized_landmarks
+        
+        return validated_landmarks
 
     #Close all resources mediapipe uses
     def close_mediapipe(self):
 
+        """
+        Release MediaPipe resources.
+
+        Process:
+            Close the MediaPipe Hand Landmarker instance.
+
+        Output:
+            None
+        """
+        
         """Release MediaPipe resources."""
         self.hand_detector.close()

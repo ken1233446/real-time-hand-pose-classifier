@@ -9,42 +9,34 @@ from typing import List
 class ExtractLandmarkPipeline:
     
     """
-    LandmarkPipeline Contract
+    ExtractLandmarkPipeline Contract
 
     What:
-        A processing pipeline that extracts and normalizes 21 hand landmarks from live RGB frames.
+        Coordinate the hand landmark extraction and normalization process.
 
     Why:
-        To convert raw camera input into structured, ML-ready hand pose features for downstream tasks
-        such as gesture recognition or classification.
+        Convert raw RGB camera frames into normalized landmark features
+        that are ready for machine learning models.
 
-    How:
-        Uses a HandDetector module to extract raw hand landmarks,
-        then applies a Normalizer module to convert landmarks into a consistent coordinate space.
+    Input:
+        detector:
+            HandDetector module.
 
-    Inputs:
-        detector (HandDetector)
-            Module responsible for detecting hand landmarks from frames.
-
-        normalizer (Normalizer)
-            Module responsible for normalizing landmark coordinates.
-
-    Preconditions:
-        - detector must be initialized and functional.
-        - normalizer must be initialized and functional.
-        - detector must return valid 21 hand landmarks or None/empty if no hand is detected.
-        - input frames must be RGB numpy arrays with valid image shape.
+        normalizer:
+            Normalizer module.
 
     Process:
-        Receive RGB frames from camera pipeline
-        Pass frames into HandDetector to extract raw 21 landmarks
-        Pass extracted landmarks into Normalizer for scaling and alignment
-        Return processed normalized landmark vector
+        Receive an RGB frame.
+        Detect raw hand landmarks.
+        Normalize the detected landmarks.
+        Return the normalized landmark vector.
 
     Output:
-        List[float] or np.ndarray
-            A normalized representation of 21 hand landmarks suitable for ML models
-            OR empty output if no hand is detected.
+        List[float]
+            Normalized landmark feature vector.
+
+        None
+            Returned when no hand is detected.
     """
     
     #Initiates Modules.
@@ -54,8 +46,8 @@ class ExtractLandmarkPipeline:
         self.detector = detector
         self.normalizer = normalizer
 
-    #Get the 21 Normalized Landmarks from live frame. Return: 21 Normalized Landmarks.
-    def extract(self, rgb_frames: np.ndarray) -> List[float]:
+    #Extract normalized landmarks from an RGB frame.| Return: 21 Normalized Landmarks.
+    def extract(self, rgb_frames: np.ndarray) -> List[float] | None:
         
         """
         Pipeline:
@@ -68,10 +60,31 @@ class ExtractLandmarkPipeline:
             Output (Extracted normalized landmarks)
         """
 
+        """
+        Input:
+            rgb_frames:
+                RGB Numpy Matrix.
+
+        Process:
+            Detect hand landmarks.f
+            Check if a hand is detected.
+            Normalize the detected landmarks.
+
+        Output:
+            List[float]
+                Normalized landmark feature vector.
+
+            None
+                Returned when no hand is detected.
+        """
         #Process RGB frames. Return: UnNormalized 21 Hand landmarks.
         unnormalized_landmarks = self.detector.detect_hands(rgb_frames)
 
-        #Convert Normalized the landmarks. Return: Normalized landmarks.
+        #No hand detected.
+        if unnormalized_landmarks is None:
+            return None
+
+        #Normalize the detected landmarks.
         normalized_landmarks = self.normalizer.transform(unnormalized_landmarks)
 
         return normalized_landmarks

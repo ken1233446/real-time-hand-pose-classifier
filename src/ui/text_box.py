@@ -19,28 +19,99 @@ class TextBox:
 
     Process:
         Receive input frame from camera or video pipeline
-        Draw a rectangular box on a fixed region of the frame
-        Render the provided text inside the rectangle using OpenCV putText
-        Overlay both shapes directly onto the original frame
-        Return updated frame with visual annotation
+        Draw the application information panel
+        Draw the current pose label
+        Draw the available keyboard controls
+        Return the updated frame
 
     Output:
         np.ndarray
-            Modified frame containing the rendered text box and text overlay.
+            Modified frame containing the rendered user interface.
     """
-    
+
+    """
+    Visualization:
+    +----------------------------------------------------------------------------------+
+    | ┌──────────────────────────────────────────────────────────────────────────────┐ |
+    | │ Real-Time Hand Pose Dataset Collector                                       │ |
+    | │                                                                              │ |
+    | │ Current Pose : Open Palm                                                     │ |
+    | │                                                                              │ |
+    | │ [ENTER] Create Pose Folder                                                   │ |
+    | │ [TAB] Save Sample    [ESC] Exit                                              │ |
+    | └──────────────────────────────────────────────────────────────────────────────┘ |
+    |                                                                                  |
+    |                                                                                  |
+    |                            ( Webcam Live Feed )                                  |
+    |                                                                                  |
+    |                           ✋  User's Hand Here                                   |
+    |                                                                                  |
+    |                                                                                  |
+    |                                                                                  |
+    |                                                                                  |
+    |                                                                                  |
+    |                                                                                  |
+    +----------------------------------------------------------------------------------+
+
+    """
+
     #Initialized the OpenCameraVision object.
     def __init__(self) -> None:
         self.cv = cv
-    
+
     #Draw Temporary Text box.
     def create_text_box(self, frame: np.ndarray, text: str) -> np.ndarray:
-    
-        # Draw textbox
-        textbox = self.cv.rectangle(frame, (100, 410), (500, 450), (255,255,255), 2)
-        
-        #Draw current text.
-        result = self.cv.putText(textbox,f"Enter Pose: {text}", (110,440),cv.FONT_HERSHEY_SIMPLEX,1, (255,255,255), 2)
 
-        #Return the frame with updated text box.
-        return result
+        #Main information box.
+        self.cv.rectangle(
+            frame,
+            (15, 15),
+            (430, 150),
+            (255, 255, 255),
+            2
+        )
+
+        #Application title.
+        self.cv.putText(
+            frame,
+            "Real-Time Hand Pose Dataset Collector",
+            (25, 40),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2
+        )
+
+        #Current pose label.
+        self.cv.putText(
+            frame,
+            f"Current Pose : {text}",
+            (25, 70),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2
+        )
+
+        #Instructions.
+        self.cv.putText(
+            frame,
+            "[ENTER] Create Pose Folder",
+            (25, 100),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 255, 255),
+            1
+        )
+
+        self.cv.putText(frame,
+            "[TAB] Save Sample    [ESC] Exit",
+            (25, 125),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 255, 255),
+            1
+        )
+
+        #Return the updated frame.
+        return frame

@@ -14,36 +14,37 @@ import numpy as np
 class SavePoseDatasetsPipeline:
     
     """
-    Pipeline:
-        Extract and Normalized landmarks from raw frames | via (extract_landmark MODULE)
-                ↓
-        Save Extracted landmarks to NPZ | via (save_pose MODULE)
-
+    SavePoseDatasetsPipeline Contract
 
     What:
-        Coordinates saving a labeled hand pose sample, including its
-        landmarks and reference image, into the /data folder.
+        Coordinate the extraction and saving of a labeled hand pose dataset.
 
-    Preconditions:
-        MODULE:
-            →extract_landmark
-            →save_pose
-    
+    Why:
+        Convert an RGB frame into normalized hand landmarks and save
+        the extracted pose into the dataset for future model training.
+
     Input:
-        label: str
-        RAW frames: np.array
+        landmark_labels: str
+            Pose label assigned by the user.
+
+        rgb_frame: np.ndarray
+            RGB frame captured from the camera.
 
     Process:
-        Validate the raw frames (np.array).
-        Extract and Normalized the landmarks from raw frames.
-        Persist the landmarks to the NPZ dataset.
-        Save the reference image for the corresponding pose.
+        Validate the input label.
+        Validate the RGB frame.
+        Extract normalized hand landmarks.
+        Validate the extracted landmarks.
+        Save the pose label and landmarks to the dataset.
 
     Output:
-        A new labeled pose sample is successfully stored in the dataset,
-        and its corresponding reference image is saved into data/raw folder.
+        List[float]
+            Normalized landmark feature vector that was saved.
+
+        None
+            Returned when no hand is detected.
     """
-    
+
     #Initiate objects.
     def __init__(self) -> None:
         
@@ -83,9 +84,6 @@ class SavePoseDatasetsPipeline:
     def _validate_landmarks(self, landmarks: list[float]) -> None:
         """Validate extracted landmarks."""
 
-        if landmarks is None:
-            raise ValueError("No landmarks were extracted.")
-
         if not isinstance(landmarks, list):
             raise TypeError("Extracted landmarks must be a list.")
 
@@ -100,20 +98,63 @@ class SavePoseDatasetsPipeline:
     
     
     #Extract and Normalized landmark → Save as dataset (NPZ). | Return: landmarks. ← indication purposes.
-    def extract_and_save_landmark(self, landmark_labels: str, rgb_frame:np.ndarray) -> list[float]:
-        
+    def extract_and_save_landmark(self, landmark_labels: str, rgb_frame:np.ndarray) -> list[float] | None:
+
+        """
+        Extract and save a labeled hand pose.
+
+        Pipeline:
+            RGB Frame
+                ↓
+            ExtractLandmarkPipeline
+                ↓
+            Normalized Landmark Features
+                ↓
+            SavePoseDataset
+                ↓
+            NPZ Dataset
+
+        Input:
+            landmark_labels:
+                User-defined pose label.
+
+            rgb_frame:
+                RGB Numpy Matrix.
+
+        Process:
+            Validate the pose label.
+            Validate the RGB frame.
+            Extract normalized landmarks.
+            Check if a hand is detected.
+            Validate the extracted landmarks.
+            Save the landmarks and label.
+
+        Output:
+            List[float]
+                Saved normalized landmark feature vector.
+
+            None
+                Returned when no hand is detected.
+        """
+
         # Validate input.
         self._validate_label(landmark_labels)
         self._validate_frame(rgb_frame)
 
-        #Get the Normalized 21 landmarks.
+        #Extract the normalized landmark features.
         result = self.extract_landmark.extract(rgb_frame)
         
+        #Check if no hand is detected.
+        if result is None:
+            return None
+
         # Validate output.
         self._validate_landmarks(result)
         
-        #Add pose dataset to temporary store.
-        #self.x (landmarks), self.y (labels).
+        #Store the extracted landmarks and pose label.
+        #Temporary dataset:
+        #self.x -> landmarks
+        #self.y -> labels
         self.save_landmark.add_pose(result, landmark_labels)
 
         #Save the Extracted landmarks and labels to NPZ file.
