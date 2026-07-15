@@ -2,9 +2,11 @@
 from src.pipeline.extract_and_save_pose_dataset import SavePoseDatasetsPipeline
 from src.pipeline.dataset_filesystem import PoseDatasetFileSystemPipeline
 from src.model.train_pipeline import TrainModelPipeline
+from src.pipeline.extract_landmark import ExtractLandmarkPipeline
 
 #Models.
 from sklearn.ensemble import RandomForestClassifier
+from src.Inference.live_model import PredictionModel
 
 #Module:
 #Camera
@@ -31,9 +33,12 @@ from src.feature.save_pose_image.save_image import SavePoseImage
 from src.model.model_config.model_config_loader import load_config
 #hand_skeleton_drawer
 from src.visuals.hand_skeleton_drawer import HandSkeletonDrawer
+#normalizer.py
+from src.feature.landmark_normalizer.normalizer import Normalizer
 
 from pathlib import Path
 import mediapipe as mp
+import numpy as np
 
 """
 Main Operation of the system.
@@ -56,6 +61,7 @@ def main():
     cam = Camera()
     view = FrameOps()
     detector = HandDetector()
+    normalizer = Normalizer()
     keyboard_ops = TextBoxInput()
     text_box = TextBox()
     folder_creator = FolderCreation()
@@ -64,11 +70,15 @@ def main():
     ui_state = UiState()
     save_image = SavePoseImage()
     skeleton_drawer = HandSkeletonDrawer(connections)
+    extract_landmarks = ExtractLandmarkPipeline(detector, normalizer)
 
     #Model creation:
     model_config = load_config()
     model = RandomForestClassifier(n_estimators=200, random_state= model_config.random_state)
     train = TrainModelPipeline(model, model_config)
+    
+    #The Live predictor model.
+    predictor = PredictionModel()
     
     #Pipelines.
     save_pose_landmark = SavePoseDatasetsPipeline()
@@ -107,6 +117,18 @@ def main():
         landmarks = detector.detect_hands(vision_state.rgb_frame)
         
         vision_state.frame = skeleton_drawer.draw(vision_state.frame, landmarks)
+
+        #Predict gesture.
+        if landmarks is not None:
+
+            #Extract and normalized 21 hand landmarks.
+            vision_state.features =  extract_landmarks.extract(vision_state.rgb_frame)
+
+            #Check if hands is detected.
+            if vision_state.features is not None:
+                prediction = predictor.predict(np.array(vision_state.features))
+
+                print(f"Prediction: {prediction}")
 
         #Grab the Operation key.
         ui_state.key = view.get_key()

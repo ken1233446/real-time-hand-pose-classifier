@@ -15,3 +15,4 @@ class VisionState:
     rgb_frame: np.ndarray | None = None
     bgr_frame: np.ndarray | None = None
     accuracy: float | None = None
+    features: list | None = None

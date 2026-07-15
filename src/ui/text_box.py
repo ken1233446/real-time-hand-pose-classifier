@@ -66,7 +66,7 @@ class TextBox:
         self.cv.rectangle(
             frame,
             (15, 15),
-            (450, 150),
+            (500, 150),
             (255, 255, 255),
             2
         )
