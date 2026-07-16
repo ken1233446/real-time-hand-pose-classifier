@@ -255,6 +255,9 @@ class VisionController:
 
         # FPS tracking
         self.previous_time: float = time.time()
+        
+        # Check if model is loaded.
+        self.ui_state.model_loaded = self.predictor.loaded
 
     def process_frame(self) -> None:
 

@@ -51,7 +51,8 @@ class PredictionModel:
         """
 
         self._model: ClassifierMixin = joblib.load(self.MODEL_PATH)
-
+        self.loaded = True
+        
     def predict(self, features: np.ndarray) -> tuple[str, float]:
         
         """
