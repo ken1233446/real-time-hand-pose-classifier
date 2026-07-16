@@ -351,8 +351,8 @@ class VisionController:
         """
 
         key = self.view.get_key()
-        event = (self.event_manager.process_key(key))
-        self.execute_event(event)
+        event = self.event_manager.process_key(key)
+        self.execute_event(event, key)
 
         if event == VisionEvent.EXIT:
             return False
@@ -431,7 +431,7 @@ class VisionController:
         self.cam.release_camera()
         self.view.close_windows()
     
-    def execute_event(self, event: VisionEvent) -> None:
+    def execute_event(self, event: VisionEvent, key: int) -> None:
         
         """
         Execute application event.
@@ -447,25 +447,24 @@ class VisionController:
         """
 
         if event == VisionEvent.CREATE_FOLDER:
-
             print("Create folder event triggered")
-            
             # Existing code goes here.
-            # filesystem.initiate_pose_dataset_folder()
 
         elif event == VisionEvent.SAVE_POSE:
-
             print("Save pose event triggered")
-
             # Existing save logic here.
 
         elif event == VisionEvent.TRAIN_MODEL:
-
             print("Training event triggered")
+            self.vision_state.accuracy = self.train.train_and_save_model()
+            print(f"Accuracy: {self.vision_state.accuracy * 100:.2f}%")
 
-            self.vision_state.accuracy = (self.train.train_and_save_model())
+        elif event == VisionEvent.TYPE_CHAR:
+            self.ui_state.pose_label = self.keyboard_ops.update_text_input(
+                key, self.ui_state.pose_label
+            )
 
-            print(
-                f"Accuracy: "
-                f"{self.vision_state.accuracy * 100:.2f}%"
+        elif event == VisionEvent.BACKSPACE:
+            self.ui_state.pose_label = self.keyboard_ops.update_text_input(
+                key, self.ui_state.pose_label
             )

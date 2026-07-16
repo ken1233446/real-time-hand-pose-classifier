@@ -1,4 +1,4 @@
-from src.schemas.event_schema import VisionEvent
+from src.schemas.event_schema import VisionEvent, KeyCode
 
 class EventManager:
 
@@ -27,42 +27,35 @@ class EventManager:
     """
 
     # Keyboard mapping.
-
     CLOSE_KEY = 27
     ENTER_KEY = 13
     SAVE_KEY = 9
     TRAIN_KEY = 61
 
     def __init__(self) -> None:
-
-        """
-        Initialize EventManager.
-        """
-        pass
+            pass
 
     def process_key(self, key: int) -> VisionEvent:
 
-        """
-        Convert keyboard key into event.
+        if key == -1:  # no key pressed this frame
+            return VisionEvent.NONE
 
-        Input:
-            key:
-                OpenCV keyboard value.
-
-        Output:
-            VisionEvent.
-        """
-
-        if key == self.CLOSE_KEY:
+        if key == KeyCode.CLOSE_KEY.value:
             return VisionEvent.EXIT
 
-        if key == self.ENTER_KEY:
+        if key == KeyCode.ENTER_KEY.value:
             return VisionEvent.CREATE_FOLDER
 
-        if key == self.SAVE_KEY:
+        if key == KeyCode.SAVE_KEY.value:
             return VisionEvent.SAVE_POSE
 
-        if key == self.TRAIN_KEY:
+        if key == KeyCode.TRAIN_KEY.value:
             return VisionEvent.TRAIN_MODEL
+
+        if key == KeyCode.BACKSPACE_KEY.value:
+            return VisionEvent.BACKSPACE
+
+        if 32 <= key <= 126:  # printable ASCII, includes letters
+            return VisionEvent.TYPE_CHAR
 
         return VisionEvent.NONE
