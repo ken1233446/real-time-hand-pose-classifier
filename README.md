@@ -114,7 +114,6 @@ The application follows a pipeline-oriented architecture where each stage perfor
 
 This design simplifies debugging, improves code readability, and allows individual pipelines to be reused across dataset collection, model training, and real-time inference.
 
-> 📌 Replace this diagram with your finalized pipeline architecture image.
 
 <p align="center">
     <img src="assets/diagram/software_pipeline.png" width="950" alt="Pipeline Architecture">
@@ -386,8 +385,6 @@ Output:
 
 ==================================================
 ```
-
-> 📌 Replace this section with a screenshot of your actual test results.
 
 ---
 
