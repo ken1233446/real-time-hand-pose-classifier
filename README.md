@@ -393,7 +393,7 @@ Output:
 The Random Forest classifier achieved strong performance while maintaining low inference latency, making it suitable for real-time CPU deployment.
 
 <p align="center">
-    <img src="assest/model_results.png" width="850" alt="Model Results">
+    <img src="assets/model_results.png" width="850" alt="Model Results">
 </p>
 
 ---
@@ -471,7 +471,7 @@ Building this project provided practical experience in designing a complete mach
 ## 🛠️ Technologies
 
 <p align="center">
-    <img src="assest/tech_stack_table.png" width="850" alt="Tech Stack Table">
+    <img src="assets/tech_stack_table.png" width="850" alt="Tech Stack Table">
 </p>
 
 ---
